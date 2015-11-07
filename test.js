@@ -1,14 +1,26 @@
 import test from 'ava'
 import fs from 'fs'
 
-var SYM_BOLD = 0,
-    SYM_UP = 1,
-    SYM_LIST_ONE_UNSORTED = 2,
-    SIMPLE_LINEBREAK = 3
+var START_BOLD = 10,
+    END_BOLD = 11,
+    START_UP = 20,
+    END_UP = 21,
+    LINE_BREAK = 30,
+    START_UNORDERED_LIST_ONE = 40,
+    END_UNORDERED_LIST_ONE = 41,
+    START_UNORDERED_LIST_ONE_GROUP = 50,
+    END_UNORDERED_LIST_ONE_GROUP = 51
 
-function scan(text) {
+function parseTextile(fullText) {
+  let text = ''+fullText
   let stack = []
-  var token = new RegExp("(\n\\* |\\*|\\^|\n)")
+  let token = new RegExp("(\n\\* |\\*|\\^|\n)")
+  let context = {
+    bold: -1,
+    up: -1,
+    unorderedListOne: -1,
+    unorderedListOneGroup: -1
+  }
   while(true) {
     let idx = text.search(token)
     if (idx > -1) {
@@ -16,16 +28,35 @@ function scan(text) {
         stack.push(text.substr(0, idx))
       }
       if (text.substr(idx, 3) == '\n* ') {
-        stack.push(SYM_LIST_ONE_UNSORTED)
+        if (context.unorderedListOneGroup === -1) {
+          stack.push(-START_UNORDERED_LIST_ONE_GROUP)
+          context.unorderedListOneGroup = stack.length-1
+        } else {
+          stack[context.unorderedListOne] = START_UNORDERED_LIST_ONE
+          stack.push(END_UNORDERED_LIST_ONE)
+        }
+        stack.push(-START_UNORDERED_LIST_ONE)
+        context.unorderedListOne = stack.length-1
         text = text.substr(idx + 3)
       } else if (text.substr(idx, 1) == '\n') {
-        stack.push(SIMPLE_LINEBREAK)
+        if (context.unorderedListOneGroup > -1) {
+          if (context.unorderedListOne > -1) {
+            stack[context.unorderedListOne] = START_UNORDERED_LIST_ONE
+            stack.push(END_UNORDERED_LIST_ONE)
+          }
+          stack[context.unorderedListOneGroup] = START_UNORDERED_LIST_ONE_GROUP
+          stack.push(END_UNORDERED_LIST_ONE_GROUP)
+          context.unorderedListOne = -1
+          context.unorderedListOneGroup = -1
+        } else {
+          stack.push(LINE_BREAK)
+        }
         text = text.substr(idx + 1)
       } else if (text.substr(idx, 1) == '*') {
-        stack.push(SYM_BOLD)
+        parseToken(context, stack, 'bold', START_BOLD, END_BOLD)
         text = text.substr(idx + 1)
       } else if (text.substr(idx, 1) == '^') {
-        stack.push(SYM_UP)
+        parseToken(context, stack, 'up', START_UP, END_UP)
         text = text.substr(idx + 1)
       }
     } else {
@@ -35,85 +66,29 @@ function scan(text) {
       break
     }
   }
-  return stack
+  let cleanedStack = []
+  for (let idx = 0; idx < stack.length; idx++) {
+    let token = stack[idx]
+    if (typeof token === 'string' || token > -1) {
+      cleanedStack.push(token)
+    }
+  }
+  return cleanedStack
 }
 
-var START_BOLD = 10,
-    END_BOLD = 11,
-    START_UP = 12,
-    END_UP = 13,
-    LINE_BREAK = 14,
-    START_UNORDERED_LIST_ONE = 15,
-    END_UNORDERED_LIST_ONE = 16,
-    START_UNORDERED_LIST_ONE_GROUP = 17,
-    END_UNORDERED_LIST_ONE_GROUP = 18
-
-function parseToken(context, parsedTokens, idx, key, start, end) {
+function parseToken(context, stack, key, start, end) {
   if (context[key] > -1) {
-    parsedTokens[context[key]] = start
-    parsedTokens.push(end)
+    stack[context[key]] = start
+    stack.push(end)
     context[key] = -1
   } else {
-    parsedTokens.push(-1)
-    context[key] = idx
+    stack.push(-start)
+    context[key] = stack.length-1
   }
-}
-
-function parse(tokens) {
-  var parsedTokens = []
-  var context = {
-    bold: -1,
-    up: -1,
-    unorderedListOne: -1,
-    unorderedListOneGroup: -1
-  }
-  var targetIdx = 0;
-  for (let idx = 0; idx < tokens.length; idx++) {
-    let token = tokens[idx]
-    if (typeof token === 'string') {
-      parsedTokens.push(token)
-    } else {
-      if (token === SYM_BOLD) {
-        parseToken(context, parsedTokens, targetIdx, 'bold', START_BOLD, END_BOLD)
-      } else if (token === SYM_UP) {
-        parseToken(context, parsedTokens, targetIdx, 'up', START_UP, END_UP)
-      } else if (token === SYM_LIST_ONE_UNSORTED) {
-        if (context.unorderedListOneGroup === -1) {
-          context.unorderedListOneGroup = targetIdx
-          parsedTokens.push(-1)
-          targetIdx++
-        } else {
-          parsedTokens[context.unorderedListOne] = START_UNORDERED_LIST_ONE
-          parsedTokens.push(END_UNORDERED_LIST_ONE)
-          targetIdx++
-        }
-        context.unorderedListOne = targetIdx
-        parsedTokens.push(-1)
-      } else if (token === SIMPLE_LINEBREAK) {
-        if (context.unorderedListOneGroup > 0) {
-          if (context.unorderedListOne > 0) {
-            parsedTokens[context.unorderedListOne] = START_UNORDERED_LIST_ONE
-            parsedTokens.push(END_UNORDERED_LIST_ONE)
-            targetIdx++
-          }
-          parsedTokens[context.unorderedListOneGroup] = START_UNORDERED_LIST_ONE_GROUP
-          parsedTokens.push(END_UNORDERED_LIST_ONE_GROUP)
-        }
-      }
-    }
-    targetIdx++
-  }
-  var parsedCleanedTokens = []
-  for (let idx = 0; idx < parsedTokens.length; idx++) {
-    let token = parsedTokens[idx]
-    if (token !== -1) {
-      parsedCleanedTokens.push(token)
-    }
-  }
-  return parsedCleanedTokens
 }
 
 var tokenToHtml = {}
+tokenToHtml[''+LINE_BREAK] = '<br/>'
 tokenToHtml[''+START_BOLD] = '<strong>'
 tokenToHtml[''+END_BOLD] = '</strong>'
 tokenToHtml[''+START_UP] = '<sup>'
@@ -137,8 +112,7 @@ function toHtml(tokens) {
 }
 
 function textToHtml(text) {
-  var tokens = scan(text)
-  return toHtml(parse(tokens))
+  return toHtml(parseTextile(text))
 }
 
 test('parse to html', t => {
@@ -149,47 +123,54 @@ test('parse to html', t => {
 
 test('parse', t => {
   var expectedTokens = ['foo ', START_BOLD, 'bar', START_UP, ' baz foo', END_UP, END_BOLD]
-  t.same(expectedTokens, parse(['foo ', SYM_BOLD, 'bar', SYM_UP, ' baz foo', SYM_UP, SYM_BOLD]))
+  t.same(expectedTokens, parseTextile(['foo *bar^ baz foo^*']))
   t.end()
 })
 
 test('parse unclosed', t => {
   var expectedTokens = ['foo ', START_BOLD, 'bar', ' baz foo', END_BOLD]
-  t.same(expectedTokens, parse(['foo ', SYM_BOLD, 'bar', SYM_UP, ' baz foo', SYM_BOLD]))
+  t.same(expectedTokens, parseTextile(['foo *bar^ baz foo*']))
   t.end()
 })
 
-test('parse list', t => {
+test('parse one-item list', t => {
   var expectedTokens = ['foo ', START_UNORDERED_LIST_ONE_GROUP, START_UNORDERED_LIST_ONE, 'bar', END_UNORDERED_LIST_ONE, END_UNORDERED_LIST_ONE_GROUP, ' baz foo']
-  t.same(expectedTokens, parse(['foo ', SYM_LIST_ONE_UNSORTED, 'bar', SIMPLE_LINEBREAK, ' baz foo']))
+  t.same(expectedTokens, parseTextile(['foo \n* bar\n baz foo']))
   t.end()
 })
 
-test('html file', t => {
+test('file to html', t => {
     var text = fs.readFileSync(__dirname+'/test.tx', 'utf8')
     var html = textToHtml(text)
-    var expectedHtml = 'foo <strong>bar<sup> baz foo</sup></strong><ul><li>baz</li><li>boz</li></ul>'
+    var expectedHtml = 'foo <strong>bar<sup> baz foo</sup></strong><ul><li>baz</li><li>boz</li></ul><br/>foo<br/>'
     t.same(expectedHtml, html)
     t.end()
 })
 
 test('bold', t => {
-    var tokens = scan('foo *bar* baz')
-    var expectedTokens = ['foo ', SYM_BOLD, 'bar', SYM_BOLD, ' baz']
+    var tokens = parseTextile('foo *bar* baz')
+    var expectedTokens = ['foo ', START_BOLD, 'bar', END_BOLD, ' baz']
     t.same(expectedTokens, tokens)
     t.end()
 })
 
 test('up', t => {
-    var tokens = scan('foo ^bar^ baz')
-    var expectedTokens = ['foo ', SYM_UP, 'bar', SYM_UP, ' baz']
+    var tokens = parseTextile('foo ^bar^ baz')
+    var expectedTokens = ['foo ', START_UP, 'bar', END_UP, ' baz']
+    t.same(expectedTokens, tokens)
+    t.end()
+})
+
+test('linebreak', t => {
+    var tokens = parseTextile('foo \nbar\n baz')
+    var expectedTokens = ['foo ', LINE_BREAK, 'bar', LINE_BREAK, ' baz']
     t.same(expectedTokens, tokens)
     t.end()
 })
 
 test('list one unsorted', t => {
-    var tokens = scan('foo \n* bar\n* baz\n foo')
-    var expectedTokens = ['foo ', SYM_LIST_ONE_UNSORTED, 'bar', SYM_LIST_ONE_UNSORTED, 'baz', SIMPLE_LINEBREAK, ' foo']
+    var tokens = parseTextile('foo \n* bar\n* baz\n foo')
+    var expectedTokens = ['foo ', START_UNORDERED_LIST_ONE_GROUP, START_UNORDERED_LIST_ONE, 'bar', END_UNORDERED_LIST_ONE, START_UNORDERED_LIST_ONE, 'baz', END_UNORDERED_LIST_ONE, END_UNORDERED_LIST_ONE_GROUP, ' foo']
     t.same(expectedTokens, tokens)
     t.end()
 })
