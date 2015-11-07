@@ -28,35 +28,25 @@ function parseTextile(fullText) {
         stack.push(text.substr(0, idx))
       }
       if (text.substr(idx, 3) == '\n* ') {
-        if (context.unorderedListOneGroup === -1) {
-          stack.push(-START_UNORDERED_LIST_ONE_GROUP)
-          context.unorderedListOneGroup = stack.length-1
-        } else {
-          stack[context.unorderedListOne] = START_UNORDERED_LIST_ONE
-          stack.push(END_UNORDERED_LIST_ONE)
+        if (!tryStartBlock(context, stack, 'unorderedListOneGroup', START_UNORDERED_LIST_ONE_GROUP, END_UNORDERED_LIST_ONE_GROUP)) {
+          tryEndBlock(context, stack, 'unorderedListOne', START_UNORDERED_LIST_ONE, END_UNORDERED_LIST_ONE)
         }
         stack.push(-START_UNORDERED_LIST_ONE)
         context.unorderedListOne = stack.length-1
         text = text.substr(idx + 3)
       } else if (text.substr(idx, 1) == '\n') {
-        if (context.unorderedListOneGroup > -1) {
-          if (context.unorderedListOne > -1) {
-            stack[context.unorderedListOne] = START_UNORDERED_LIST_ONE
-            stack.push(END_UNORDERED_LIST_ONE)
-          }
-          stack[context.unorderedListOneGroup] = START_UNORDERED_LIST_ONE_GROUP
-          stack.push(END_UNORDERED_LIST_ONE_GROUP)
-          context.unorderedListOne = -1
-          context.unorderedListOneGroup = -1
-        } else {
+        tryEndBlock(context, stack, 'unorderedListOne', START_UNORDERED_LIST_ONE, END_UNORDERED_LIST_ONE)
+        if (!tryEndBlock(context, stack, 'unorderedListOneGroup', START_UNORDERED_LIST_ONE_GROUP, END_UNORDERED_LIST_ONE_GROUP)) {
           stack.push(LINE_BREAK)
         }
         text = text.substr(idx + 1)
       } else if (text.substr(idx, 1) == '*') {
-        parseToken(context, stack, 'bold', START_BOLD, END_BOLD)
+        tryEndBlock(context, stack, 'bold', START_BOLD, END_BOLD)
+        tryStartBlock(context, stack, 'bold', START_BOLD, END_BOLD)
         text = text.substr(idx + 1)
       } else if (text.substr(idx, 1) == '^') {
-        parseToken(context, stack, 'up', START_UP, END_UP)
+        tryEndBlock(context, stack, 'up', START_UP, END_UP)
+        tryStartBlock(context, stack, 'up', START_UP, END_UP)
         text = text.substr(idx + 1)
       }
     } else {
@@ -76,14 +66,20 @@ function parseTextile(fullText) {
   return cleanedStack
 }
 
-function parseToken(context, stack, key, start, end) {
+function tryEndBlock(context, stack, key, start, end) {
   if (context[key] > -1) {
     stack[context[key]] = start
     stack.push(end)
     context[key] = -1
-  } else {
+    return true
+  }
+}
+
+function tryStartBlock(context, stack, key, start, end) {
+  if (context[key] === -1) {
     stack.push(-start)
     context[key] = stack.length-1
+    return true
   }
 }
 
