@@ -6,28 +6,34 @@ var SYM_BOLD = 0,
     SYM_LIST_ONE_UNSORTED = 2,
     SIMPLE_LINEBREAK = 3
 
-function scan(stack, text) {
+function scan(text) {
+  let stack = []
   var token = new RegExp("(\n\\* |\\*|\\^|\n)")
-  var idx = text.search(token)
-  if (idx > -1) {
-    if (idx > 0) {
-      stack.push(text.substr(0, idx))
+  while(true) {
+    let idx = text.search(token)
+    if (idx > -1) {
+      if (idx > 0) { // starts with non-token text
+        stack.push(text.substr(0, idx))
+      }
+      if (text.substr(idx, 3) == '\n* ') {
+        stack.push(SYM_LIST_ONE_UNSORTED)
+        text = text.substr(idx + 3)
+      } else if (text.substr(idx, 1) == '\n') {
+        stack.push(SIMPLE_LINEBREAK)
+        text = text.substr(idx + 1)
+      } else if (text.substr(idx, 1) == '*') {
+        stack.push(SYM_BOLD)
+        text = text.substr(idx + 1)
+      } else if (text.substr(idx, 1) == '^') {
+        stack.push(SYM_UP)
+        text = text.substr(idx + 1)
+      }
+    } else {
+      if (text.length) { // remaining non-token text
+        stack.push(text)
+      }
+      break
     }
-    if (text.substr(idx, 3) == '\n* ') {
-      stack.push(SYM_LIST_ONE_UNSORTED)
-      scan(stack, text.substr(idx + 3))
-    } else if (text.substr(idx, 1) == '\n') {
-      stack.push(SIMPLE_LINEBREAK)
-      scan(stack, text.substr(idx + 1))
-    } else if (text.substr(idx, 1) == '*') {
-      stack.push(SYM_BOLD)
-      scan(stack, text.substr(idx + 1))
-    } else if (text.substr(idx, 1) == '^') {
-      stack.push(SYM_UP)
-      scan(stack, text.substr(idx + 1))
-    }
-  } else if (text.length) {
-    stack.push(text)
   }
   return stack
 }
@@ -131,7 +137,7 @@ function toHtml(tokens) {
 }
 
 function textToHtml(text) {
-  var tokens = scan([], text)
+  var tokens = scan(text)
   return toHtml(parse(tokens))
 }
 
@@ -168,21 +174,21 @@ test('html file', t => {
 })
 
 test('bold', t => {
-    var tokens = scan([], 'foo *bar* baz')
+    var tokens = scan('foo *bar* baz')
     var expectedTokens = ['foo ', SYM_BOLD, 'bar', SYM_BOLD, ' baz']
     t.same(expectedTokens, tokens)
     t.end()
 })
 
 test('up', t => {
-    var tokens = scan([], 'foo ^bar^ baz')
+    var tokens = scan('foo ^bar^ baz')
     var expectedTokens = ['foo ', SYM_UP, 'bar', SYM_UP, ' baz']
     t.same(expectedTokens, tokens)
     t.end()
 })
 
 test('list one unsorted', t => {
-    var tokens = scan([], 'foo \n* bar\n* baz\n foo')
+    var tokens = scan('foo \n* bar\n* baz\n foo')
     var expectedTokens = ['foo ', SYM_LIST_ONE_UNSORTED, 'bar', SYM_LIST_ONE_UNSORTED, 'baz', SIMPLE_LINEBREAK, ' foo']
     t.same(expectedTokens, tokens)
     t.end()
