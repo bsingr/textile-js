@@ -48,6 +48,13 @@ test('up', t => {
     t.end()
 })
 
+test('down', t => {
+    var actualTokens = parseTextile('foo ~bar~ baz')
+    var expectedTokens = ['foo ', tokens.start_down, 'bar', tokens.end_down, ' baz']
+    t.same(expectedTokens, actualTokens)
+    t.end()
+})
+
 test('line break', t => {
     var actualTokens = parseTextile('foo \nbar\n baz')
     var expectedTokens = ['foo ', tokens.line_break, 'bar', tokens.line_break, ' baz']

@@ -21,7 +21,8 @@
       bold: -1,
       up: -1,
       unorderedListOne: -1,
-      unorderedListOneGroup: -1
+      unorderedListOneGroup: -1,
+      down: -1
     }
     var idx = -1
     while(true) {
