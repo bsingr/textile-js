@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <script type="text/javascript" src="./textile.js"></script>
+  <script type="text/javascript">
+    (function(){
+      window.onload = function() {
+          document.getElementById('textile').addEventListener('keyup', function (e){
+            var textile = document.getElementById('textile').value
+            document.getElementById('htmlPreview').innerHTML = textileToHtml(textile)
+        }, false);
+      }
+    })()
+  </script>
+  <style type="text/css">
+  #textile {
+    float: left;
+  }
+  #htmlPreview {
+    float: left;
+    margin-left: 20px;
+  }
+  </style>
+</head>
+<body>
+<textarea id="textile" cols=70 rows=20>
+Hello from *textile*!
+
+* this
+* is
+* a
+* list
+
+Jippi^!^
+
+</textarea>
+<div id="htmlPreview"></div>
+</body>
+</html>
