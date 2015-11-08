@@ -41,6 +41,13 @@ test('bold', t => {
     t.end()
 })
 
+test('italic', t => {
+    var actualTokens = parseTextile('foo _bar_ baz')
+    var expectedTokens = ['foo ', tokens.start_italic, 'bar', tokens.end_italic, ' baz']
+    t.same(expectedTokens, actualTokens)
+    t.end()
+})
+
 test('up', t => {
     var actualTokens = parseTextile('foo ^bar^ baz')
     var expectedTokens = ['foo ', tokens.start_up, 'bar', tokens.end_up, ' baz']

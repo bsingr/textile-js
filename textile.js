@@ -10,19 +10,22 @@
     start_unordered_list_group: 50,
     end_unordered_list_group: 51,
     start_down: 60,
-    end_down: 61
+    end_down: 61,
+    start_italic: 70,
+    end_italic: 71
   }
 
   function parseTextile(fullText) {
     var text = ''+fullText
     var stack = []
-    var token = new RegExp("(\n\\* |\\*|\\^|\n|\\~)")
+    var token = new RegExp("(\n\\* |\\*|\\^|\n|\\~|\\_)")
     var context = {
       bold: -1,
       up: -1,
+      down: -1,
+      italic: -1,
       unorderedListOne: -1,
       unorderedListOneGroup: -1,
-      down: -1
     }
     var idx = -1
     while(true) {
@@ -47,6 +50,10 @@
         } else if (text.substr(idx, 1) == '*') {
           tryEndBlock(context, stack, 'bold', tokens.start_bold, tokens.end_bold)
           tryStartBlock(context, stack, 'bold', tokens.start_bold, tokens.end_bold)
+          text = text.substr(idx + 1)
+        } else if (text.substr(idx, 1) == '_') {
+          tryEndBlock(context, stack, 'italic', tokens.start_italic, tokens.end_italic)
+          tryStartBlock(context, stack, 'italic', tokens.start_italic, tokens.end_italic)
           text = text.substr(idx + 1)
         } else if (text.substr(idx, 1) == '^') {
           tryEndBlock(context, stack, 'up', tokens.start_up, tokens.end_up)
@@ -96,6 +103,8 @@
   tokenToHtml[''+tokens.line_break] = '<br/>'
   tokenToHtml[''+tokens.start_bold] = '<strong>'
   tokenToHtml[''+tokens.end_bold] = '</strong>'
+  tokenToHtml[''+tokens.start_italic] = '<em>'
+  tokenToHtml[''+tokens.end_italic] = '</em>'
   tokenToHtml[''+tokens.start_up] = '<sup>'
   tokenToHtml[''+tokens.end_up] = '</sup>'
   tokenToHtml[''+tokens.start_down] = '<sub>'
