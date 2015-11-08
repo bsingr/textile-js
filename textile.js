@@ -48,20 +48,24 @@
           }
           text = text.substr(idx + 1)
         } else if (text.substr(idx, 1) == '*') {
-          tryEndBlock(context, stack, 'bold', tokens.start_bold, tokens.end_bold)
-          tryStartBlock(context, stack, 'bold', tokens.start_bold, tokens.end_bold)
+          if (!tryEndBlock(context, stack, 'bold', tokens.start_bold, tokens.end_bold)) {
+            tryStartBlock(context, stack, 'bold', tokens.start_bold, tokens.end_bold)
+          }
           text = text.substr(idx + 1)
         } else if (text.substr(idx, 1) == '_') {
-          tryEndBlock(context, stack, 'italic', tokens.start_italic, tokens.end_italic)
-          tryStartBlock(context, stack, 'italic', tokens.start_italic, tokens.end_italic)
+          if (!tryEndBlock(context, stack, 'italic', tokens.start_italic, tokens.end_italic)) {
+            tryStartBlock(context, stack, 'italic', tokens.start_italic, tokens.end_italic)
+          }
           text = text.substr(idx + 1)
         } else if (text.substr(idx, 1) == '^') {
-          tryEndBlock(context, stack, 'up', tokens.start_up, tokens.end_up)
-          tryStartBlock(context, stack, 'up', tokens.start_up, tokens.end_up)
+          if (!tryEndBlock(context, stack, 'up', tokens.start_up, tokens.end_up)) {
+            tryStartBlock(context, stack, 'up', tokens.start_up, tokens.end_up)
+          }
           text = text.substr(idx + 1)
         } else if (text.substr(idx, 1) == '~') {
-          tryEndBlock(context, stack, 'down', tokens.start_down, tokens.end_down)
-          tryStartBlock(context, stack, 'down', tokens.start_down, tokens.end_down)
+          if (!tryEndBlock(context, stack, 'down', tokens.start_down, tokens.end_down)) {
+            tryStartBlock(context, stack, 'down', tokens.start_down, tokens.end_down)
+          }
           text = text.substr(idx + 1)
         }
       } else {

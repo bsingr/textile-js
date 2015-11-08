@@ -69,6 +69,13 @@ test('line break', t => {
     t.end()
 })
 
+test('mixed phrase', t => {
+    var actualTokens = parseTextile('*foo*~bar~*baz*')
+    var expectedTokens = [tokens.start_bold, 'foo', tokens.end_bold, tokens.start_down, 'bar', tokens.end_down, tokens.start_bold, 'baz', tokens.end_bold]
+    t.same(expectedTokens, actualTokens)
+    t.end()
+})
+
 test('list one unsorted', t => {
     var actualTokens = parseTextile('foo \n* bar\n* baz\n foo')
     var expectedTokens = ['foo ', tokens.start_unordered_list_group, tokens.start_unordered_list, 'bar', tokens.end_unordered_list, tokens.start_unordered_list, 'baz', tokens.end_unordered_list, tokens.end_unordered_list_group, ' foo']
