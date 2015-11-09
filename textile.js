@@ -12,7 +12,9 @@
     bold: '*',
     italic: '_',
     up: '^',
-    down: '~'
+    down: '~',
+    unordered_list: '\n* ',
+    line_break: '\n'
   },
   tokenToHtml = {}
   tokenToHtml[''+tokens.line_break] = '<br/>'
@@ -48,27 +50,27 @@
         if (idx > 0) { // starts with non-token text
           stack.push(text.substr(0, idx))
         }
-        if (text.substr(idx, 3) == '\n* ') {
+        if (text.substr(idx, inputTokens.unordered_list.length) == inputTokens.unordered_list) {
           if (!tryStartBlock(context, stack, 'unordered_list_group')) {
             tryEndBlock(context, stack, 'unordered_list')
           }
           stack.push(-tokens.start_unordered_list)
           context.unordered_list = stack.length-1
-          text = text.substr(idx + 3)
-        } else if (text.substr(idx, 1) == '\n') {
+          text = text.substr(idx + inputTokens.unordered_list.length)
+        } else if (text.substr(idx, inputTokens.line_break.length) == inputTokens.line_break) {
           tryEndBlock(context, stack, 'unordered_list')
           if (!tryEndBlock(context, stack, 'unordered_list_group')) {
             stack.push(tokens.line_break)
           }
-          text = text.substr(idx + 1)
+          text = text.substr(idx + inputTokens.line_break.length)
         } else if (tryBlock(text, idx, context, stack, 'bold')) {
-          text = text.substr(idx + 1)
+          text = text.substr(idx + inputTokens.bold.length)
         } else if (tryBlock(text, idx, context, stack, 'italic')) {
-          text = text.substr(idx + 1)
+          text = text.substr(idx + inputTokens.italic.length)
         } else if (tryBlock(text, idx, context, stack, 'up')) {
-          text = text.substr(idx + 1)
+          text = text.substr(idx + inputTokens.up.length)
         } else if (tryBlock(text, idx, context, stack, 'down')) {
-          text = text.substr(idx + 1)
+          text = text.substr(idx + inputTokens.down.length)
         }
       } else {
         if (text.length > 0) { // remaining non-token text
