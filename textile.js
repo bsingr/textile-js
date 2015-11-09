@@ -1,19 +1,33 @@
 (function(){
   var tokens = {
-    start_bold: 10,
-    end_bold: 11,
-    start_up: 20,
-    end_up: 21,
+    bold: [10, 11],
+    up: [20, 21],
     line_break: 30,
-    start_unordered_list: 40,
-    end_unordered_list: 41,
-    start_unordered_list_group: 50,
-    end_unordered_list_group: 51,
-    start_down: 60,
-    end_down: 61,
-    start_italic: 70,
-    end_italic: 71
-  }
+    unordered_list: [40, 41],
+    unordered_list_group: [50, 51],
+    down: [60, 61],
+    italic: [70, 71]
+  },
+  inputTokens = {
+    bold: '*',
+    italic: '_',
+    up: '^',
+    down: '~'
+  },
+  tokenToHtml = {}
+  tokenToHtml[''+tokens.line_break] = '<br/>'
+  tokenToHtml[''+tokens['bold'][0]] = '<strong>'
+  tokenToHtml[''+tokens['bold'][1]] = '</strong>'
+  tokenToHtml[''+tokens['italic'][0]] = '<em>'
+  tokenToHtml[''+tokens['italic'][1]] = '</em>'
+  tokenToHtml[''+tokens['up'][0]] = '<sup>'
+  tokenToHtml[''+tokens['up'][1]] = '</sup>'
+  tokenToHtml[''+tokens['down'][0]] = '<sub>'
+  tokenToHtml[''+tokens['down'][1]] = '</sub>'
+  tokenToHtml[''+tokens['unordered_list'][0]] = '<li>'
+  tokenToHtml[''+tokens['unordered_list'][1]] = '</li>'
+  tokenToHtml[''+tokens['unordered_list_group'][0]] = '<ul>'
+  tokenToHtml[''+tokens['unordered_list_group'][1]] = '</ul>'
 
   function parseTextile(fullText) {
     var text = ''+fullText
@@ -24,8 +38,8 @@
       up: -1,
       down: -1,
       italic: -1,
-      unorderedListOne: -1,
-      unorderedListOneGroup: -1,
+      unordered_list: -1,
+      unordered_list_group: -1,
     }
     var idx = -1
     while(true) {
@@ -35,41 +49,29 @@
           stack.push(text.substr(0, idx))
         }
         if (text.substr(idx, 3) == '\n* ') {
-          if (!tryStartBlock(context, stack, 'unorderedListOneGroup', tokens.start_unordered_list_group, tokens.end_unordered_list_group)) {
-            tryEndBlock(context, stack, 'unorderedListOne', tokens.start_unordered_list, tokens.end_unordered_list)
+          if (!tryStartBlock(context, stack, 'unordered_list_group')) {
+            tryEndBlock(context, stack, 'unordered_list')
           }
           stack.push(-tokens.start_unordered_list)
-          context.unorderedListOne = stack.length-1
+          context.unordered_list = stack.length-1
           text = text.substr(idx + 3)
         } else if (text.substr(idx, 1) == '\n') {
-          tryEndBlock(context, stack, 'unorderedListOne', tokens.start_unordered_list, tokens.end_unordered_list)
-          if (!tryEndBlock(context, stack, 'unorderedListOneGroup', tokens.start_unordered_list_group, tokens.end_unordered_list_group)) {
+          tryEndBlock(context, stack, 'unordered_list')
+          if (!tryEndBlock(context, stack, 'unordered_list_group')) {
             stack.push(tokens.line_break)
           }
           text = text.substr(idx + 1)
-        } else if (text.substr(idx, 1) == '*') {
-          if (!tryEndBlock(context, stack, 'bold', tokens.start_bold, tokens.end_bold)) {
-            tryStartBlock(context, stack, 'bold', tokens.start_bold, tokens.end_bold)
-          }
+        } else if (tryBlock(text, idx, context, stack, 'bold')) {
           text = text.substr(idx + 1)
-        } else if (text.substr(idx, 1) == '_') {
-          if (!tryEndBlock(context, stack, 'italic', tokens.start_italic, tokens.end_italic)) {
-            tryStartBlock(context, stack, 'italic', tokens.start_italic, tokens.end_italic)
-          }
+        } else if (tryBlock(text, idx, context, stack, 'italic')) {
           text = text.substr(idx + 1)
-        } else if (text.substr(idx, 1) == '^') {
-          if (!tryEndBlock(context, stack, 'up', tokens.start_up, tokens.end_up)) {
-            tryStartBlock(context, stack, 'up', tokens.start_up, tokens.end_up)
-          }
+        } else if (tryBlock(text, idx, context, stack, 'up')) {
           text = text.substr(idx + 1)
-        } else if (text.substr(idx, 1) == '~') {
-          if (!tryEndBlock(context, stack, 'down', tokens.start_down, tokens.end_down)) {
-            tryStartBlock(context, stack, 'down', tokens.start_down, tokens.end_down)
-          }
+        } else if (tryBlock(text, idx, context, stack, 'down')) {
           text = text.substr(idx + 1)
         }
       } else {
-        if (text.length) { // remaining non-token text
+        if (text.length > 0) { // remaining non-token text
           stack.push(text)
         }
         break
@@ -86,43 +88,36 @@
     return cleanedStack
   }
 
-  function tryEndBlock(context, stack, key, start, end) {
+  function tryEndBlock(context, stack, key) {
     if (context[key] > -1) {
-      stack[context[key]] = start
-      stack.push(end)
+      stack[context[key]] = tokens[key][0]
+      stack.push(tokens[key][1])
       context[key] = -1
       return true
     }
   }
 
-  function tryStartBlock(context, stack, key, start, end) {
+  function tryStartBlock(context, stack, key) {
     if (context[key] === -1) {
-      stack.push(-start)
+      stack.push(-tokens[key][0])
       context[key] = stack.length-1
       return true
     }
   }
 
-  var tokenToHtml = {}
-  tokenToHtml[''+tokens.line_break] = '<br/>'
-  tokenToHtml[''+tokens.start_bold] = '<strong>'
-  tokenToHtml[''+tokens.end_bold] = '</strong>'
-  tokenToHtml[''+tokens.start_italic] = '<em>'
-  tokenToHtml[''+tokens.end_italic] = '</em>'
-  tokenToHtml[''+tokens.start_up] = '<sup>'
-  tokenToHtml[''+tokens.end_up] = '</sup>'
-  tokenToHtml[''+tokens.start_down] = '<sub>'
-  tokenToHtml[''+tokens.end_down] = '</sub>'
-  tokenToHtml[''+tokens.start_unordered_list] = '<li>'
-  tokenToHtml[''+tokens.end_unordered_list] = '</li>'
-  tokenToHtml[''+tokens.start_unordered_list_group] = '<ul>'
-  tokenToHtml[''+tokens.end_unordered_list_group] = '</ul>'
+  function tryBlock(text, idx, context, stack, key) {
+    if (text.substr(idx, 1) == inputTokens[key]) {
+      if (!tryEndBlock(context, stack, key)) {
+        tryStartBlock(context, stack, key)
+      }
+      return true
+    }
+  }
 
   function textileTokensToHtml(tokens) {
     var html = []
-    var idx = 0
     var token
-    for (idx = 0; idx < tokens.length; idx++) {
+    for (var idx = 0; idx < tokens.length; idx++) {
       token = tokens[idx]
       if (typeof token === 'number') {
         html.push(tokenToHtml[''+token])
