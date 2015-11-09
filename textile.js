@@ -5,8 +5,10 @@
     line_break: 30,
     unordered_list: [40, 41],
     unordered_list_group: [50, 51],
-    down: [60, 61],
-    italic: [70, 71]
+    unordered_list_two: [60, 61],
+    unordered_list_two_group: [70, 71],
+    down: [80, 81],
+    italic: [90, 91]
   },
   inputTokens = {
     bold: '*',
@@ -14,6 +16,7 @@
     up: '^',
     down: '~',
     unordered_list: '\n* ',
+    unordered_list_two: '\n** ',
     line_break: '\n'
   },
   tokenToHtml = {}
@@ -30,18 +33,24 @@
   tokenToHtml[''+tokens['unordered_list'][1]] = '</li>'
   tokenToHtml[''+tokens['unordered_list_group'][0]] = '<ul>'
   tokenToHtml[''+tokens['unordered_list_group'][1]] = '</ul>'
+  tokenToHtml[''+tokens['unordered_list_two'][0]] = '<li>'
+  tokenToHtml[''+tokens['unordered_list_two'][1]] = '</li>'
+  tokenToHtml[''+tokens['unordered_list_two_group'][0]] = '<ul>'
+  tokenToHtml[''+tokens['unordered_list_two_group'][1]] = '</ul>'
 
   function parseTextile(fullText) {
     var text = ''+fullText
     var stack = []
-    var token = new RegExp("(\n\\* |\\*|\\^|\n|\\~|\\_)")
+    var token = new RegExp("(\n\\* |\n\\*\\* |\\*|\\^|\n|\\~|\\_)")
     var context = {
       bold: -1,
       up: -1,
       down: -1,
       italic: -1,
       unordered_list: -1,
+      unordered_list_two: -1,
       unordered_list_group: -1,
+      unordered_list_two_group: -1
     }
     var idx = -1
     while(true) {
@@ -50,14 +59,24 @@
         if (idx > 0) { // starts with non-token text
           stack.push(text.substr(0, idx))
         }
-        if (text.substr(idx, inputTokens.unordered_list.length) == inputTokens.unordered_list) {
+        if (text.substr(idx, inputTokens.unordered_list_two.length) == inputTokens.unordered_list_two) {
+          if (!tryStartBlock(context, stack, 'unordered_list_two_group')) {
+            tryEndBlock(context, stack, 'unordered_list_two')
+          }
+          stack.push(-tokens.start_unordered_list_two)
+          context.unordered_list_two = stack.length-1
+          text = text.substr(idx + inputTokens.unordered_list_two.length)
+        } else if (text.substr(idx, inputTokens.unordered_list.length) == inputTokens.unordered_list) {
+          tryEndBlock(context, stack, 'unordered_list_two')
+          tryEndBlock(context, stack, 'unordered_list_two_group')
           if (!tryStartBlock(context, stack, 'unordered_list_group')) {
             tryEndBlock(context, stack, 'unordered_list')
           }
-          stack.push(-tokens.start_unordered_list)
-          context.unordered_list = stack.length-1
+          tryStartBlock(context, stack, 'unordered_list')
           text = text.substr(idx + inputTokens.unordered_list.length)
         } else if (text.substr(idx, inputTokens.line_break.length) == inputTokens.line_break) {
+          tryEndBlock(context, stack, 'unordered_list_two')
+          tryEndBlock(context, stack, 'unordered_list_two_group')
           tryEndBlock(context, stack, 'unordered_list')
           if (!tryEndBlock(context, stack, 'unordered_list_group')) {
             stack.push(tokens.line_break)

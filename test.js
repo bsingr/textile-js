@@ -29,7 +29,14 @@ test('parse one-item list', t => {
 test('file to html', t => {
     var text = fs.readFileSync(__dirname+'/test.tx', 'utf8')
     var html = textileToHtml(text)
-    var expectedHtml = 'foo <strong>bar<sup> baz foo</sup></strong><ul><li>baz</li><li>boz</li></ul><br/>foo<br/>'
+    var expectedHtml = [
+      'foo <strong>bar<sup> baz foo</sup></strong>',
+      '<ul><li>baz',
+          '<ul><li>baz-1</li><li>baz-2</li></ul>',
+      '</li><li>boz',
+          '<ul><li>boz-1</li></ul>',
+      '</li></ul>',
+      '<br/>foo<br/>'].join('')
     t.same(expectedHtml, html)
     t.end()
 })
@@ -79,6 +86,13 @@ test('mixed phrase', t => {
 test('list one unsorted', t => {
     var actualTokens = parseTextile('foo \n* bar\n* baz\n foo')
     var expectedTokens = ['foo ', tokens['unordered_list_group'][0], tokens['unordered_list'][0], 'bar', tokens['unordered_list'][1], tokens['unordered_list'][0], 'baz', tokens['unordered_list'][1], tokens['unordered_list_group'][1], ' foo']
+    t.same(expectedTokens, actualTokens)
+    t.end()
+})
+
+test('list two unsorted', t => {
+    var actualTokens = parseTextile('foo \n* bar\n** baz\n** bak\n* bee\n foo')
+    var expectedTokens = ['foo ', tokens['unordered_list_group'][0], tokens['unordered_list'][0], 'bar', tokens['unordered_list_two_group'][0], tokens['unordered_list_two'][0], 'baz', tokens['unordered_list_two'][1], tokens['unordered_list_two'][0], 'bak', tokens['unordered_list_two'][1], tokens['unordered_list_two_group'][1], tokens['unordered_list'][1], tokens['unordered_list'][0], 'bee', tokens['unordered_list'][1], tokens['unordered_list_group'][1], ' foo']
     t.same(expectedTokens, actualTokens)
     t.end()
 })

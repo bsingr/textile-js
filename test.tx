@@ -1,5 +1,8 @@
 foo *bar^ baz foo^*
 * baz
+** baz-1
+** baz-2
 * boz
+** boz-1
 
 foo
