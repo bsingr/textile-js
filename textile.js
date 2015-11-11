@@ -59,40 +59,9 @@
         if (idx > 0) { // starts with non-token text
           stack.push(text.substr(0, idx))
         }
-        if (text.substr(idx, inputTokens.unordered_list_two.length) == inputTokens.unordered_list_two) {
-          if (!tryStartBlock(context, stack, 'unordered_list_two_group')) {
-            tryEndBlock(context, stack, 'unordered_list_two')
-          }
-          stack.push(-tokens.start_unordered_list_two)
-          context.unordered_list_two = stack.length-1
-          text = text.substr(idx + inputTokens.unordered_list_two.length)
-        } else if (text.substr(idx, inputTokens.unordered_list.length) == inputTokens.unordered_list) {
-          tryEndBlock(context, stack, 'unordered_list_two')
-          tryEndBlock(context, stack, 'unordered_list_two_group')
-          if (!tryStartBlock(context, stack, 'unordered_list_group')) {
-            tryEndBlock(context, stack, 'unordered_list')
-          }
-          tryStartBlock(context, stack, 'unordered_list')
-          text = text.substr(idx + inputTokens.unordered_list.length)
-        } else if (text.substr(idx, inputTokens.line_break.length) == inputTokens.line_break) {
-          tryEndBlock(context, stack, 'unordered_list_two')
-          tryEndBlock(context, stack, 'unordered_list_two_group')
-          tryEndBlock(context, stack, 'unordered_list')
-          if (!tryEndBlock(context, stack, 'unordered_list_group')) {
-            stack.push(tokens.line_break)
-          }
-          text = text.substr(idx + inputTokens.line_break.length)
-        } else if (tryBlock(text, idx, context, stack, 'bold')) {
-          text = text.substr(idx + inputTokens.bold.length)
-        } else if (tryBlock(text, idx, context, stack, 'italic')) {
-          text = text.substr(idx + inputTokens.italic.length)
-        } else if (tryBlock(text, idx, context, stack, 'up')) {
-          text = text.substr(idx + inputTokens.up.length)
-        } else if (tryBlock(text, idx, context, stack, 'down')) {
-          text = text.substr(idx + inputTokens.down.length)
-        }
+        text = parseToken(text, idx, context, stack)
       } else {
-        if (text.length > 0) { // remaining non-token text
+        if (text.length > 0) { // ends with non-token text
           stack.push(text)
         }
         break
@@ -133,6 +102,43 @@
       }
       return true
     }
+  }
+
+  function parseToken(text, idx, context, stack) {
+    var newText;
+    if (text.substr(idx, inputTokens.unordered_list_two.length) == inputTokens.unordered_list_two) {
+      if (!tryStartBlock(context, stack, 'unordered_list_two_group')) {
+        tryEndBlock(context, stack, 'unordered_list_two')
+      }
+      stack.push(-tokens.start_unordered_list_two)
+      context.unordered_list_two = stack.length-1
+      newText = text.substr(idx + inputTokens.unordered_list_two.length)
+    } else if (text.substr(idx, inputTokens.unordered_list.length) == inputTokens.unordered_list) {
+      tryEndBlock(context, stack, 'unordered_list_two')
+      tryEndBlock(context, stack, 'unordered_list_two_group')
+      if (!tryStartBlock(context, stack, 'unordered_list_group')) {
+        tryEndBlock(context, stack, 'unordered_list')
+      }
+      tryStartBlock(context, stack, 'unordered_list')
+      newText = text.substr(idx + inputTokens.unordered_list.length)
+    } else if (text.substr(idx, inputTokens.line_break.length) == inputTokens.line_break) {
+      tryEndBlock(context, stack, 'unordered_list_two')
+      tryEndBlock(context, stack, 'unordered_list_two_group')
+      tryEndBlock(context, stack, 'unordered_list')
+      if (!tryEndBlock(context, stack, 'unordered_list_group')) {
+        stack.push(tokens.line_break)
+      }
+      newText = text.substr(idx + inputTokens.line_break.length)
+    } else if (tryBlock(text, idx, context, stack, 'bold')) {
+      newText = text.substr(idx + inputTokens.bold.length)
+    } else if (tryBlock(text, idx, context, stack, 'italic')) {
+      newText = text.substr(idx + inputTokens.italic.length)
+    } else if (tryBlock(text, idx, context, stack, 'up')) {
+      newText = text.substr(idx + inputTokens.up.length)
+    } else if (tryBlock(text, idx, context, stack, 'down')) {
+      newText = text.substr(idx + inputTokens.down.length)
+    }
+    return newText
   }
 
   function textileTokensToHtml(tokens) {
