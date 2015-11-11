@@ -127,7 +127,7 @@
   }
 
   function tryBlock(text, idx, context, stack, key) {
-    if (text.substr(idx, 1) == inputTokens[key]) {
+    if (text.substr(idx, inputTokens[key].length) == inputTokens[key]) {
       if (!tryEndBlock(context, stack, key)) {
         tryStartBlock(context, stack, key)
       }
